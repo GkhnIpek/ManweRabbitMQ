@@ -16,11 +16,7 @@ namespace ManweRabbitMQ.Publisher
             {
                 using (var channel = connection.CreateModel())
                 {
-                    //queue = kuyruk ismimiz
-                    //durable = eğer false olursa bizim rabbitmq instance'mız restart atarsa bu kuyruk silinir çünkü bellekte tutulur.Ancak true olursa rabbitmq bunu bir fiziksel diske yazar ve kaybolmaz.
-                    //exclusive = bu kuyruğa bir tane mi kanal bağlansın yoksa birden fazla kanal bağlansın mı bunu belirtmek için kullanılır.True olursa tek kanal bağlanır.
-                    //autoDelete = eğer kuyrukta bulunan son mesaj da bu kuyruktan çıkarsa bu kuyruk silinsin mi belirtmek için.True olursa otomatik olarak silinir.
-                    channel.QueueDeclare("task_queue", durable: true, false, false, null);
+                    channel.ExchangeDeclare("logs", durable: true, type: ExchangeType.Fanout);
 
                     string message = GetMessage(args);
                     for (int i = 1; i < 11; i++)
@@ -28,12 +24,9 @@ namespace ManweRabbitMQ.Publisher
                         var bodyByte = Encoding.UTF8.GetBytes($"{message}-{i}");
                         var properties = channel.CreateBasicProperties();
                         properties.Persistent = true; //mesajı korumak için, silinmesini engellemek için kullanılır. Yukardaki kuyruğu sağlama aldığımız gibi(durable:false)
-
-
-                        channel.BasicPublish("", routingKey: "task_queue", properties, body: bodyByte);
+                        channel.BasicPublish("logs", routingKey: "", properties, body: bodyByte);
                         Console.WriteLine($"Mesajınız gönderilmiştir: {message}-{i}");
                     }
-
                 }
 
                 Console.WriteLine("Çıkış yapmak için tıklayınız.");

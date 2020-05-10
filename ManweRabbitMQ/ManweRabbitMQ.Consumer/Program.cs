@@ -18,37 +18,36 @@ namespace ManweRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    //queue = kuyruk ismimiz
-                    //durable = eğer false olursa bizim rabbitmq instance'mız restart atarsa bu kuyruk silinir çünkü bellekte tutulur.Ancak true olursa rabbitmq bunu bir fiziksel diske yazar ve kaybolmaz.
-                    //exclusive = bu kuyruğa bir tane mi kanal bağlansın yoksa birden fazla kanal bağlansın mı bunu belirtmek için kullanılır.True olursa tek kanal bağlanır.
-                    //autoDelete = eğer kuyrukta bulunan son mesaj da bu kuyruktan çıkarsa bu kuyruk silinsin mi belirtmek için.True olursa otomatik olarak silinir.
-                    channel.QueueDeclare("task_queue", true, false, false, null);
+                    channel.ExchangeDeclare("logs", durable: true, type: ExchangeType.Fanout);
+
+                    var queueName = channel.QueueDeclare().QueueName;
+                    channel.QueueBind(queue: queueName, exchange: "logs", routingKey: "");
 
                     //prefetchCount: aynı anda kaç mesajın verilmek istendiği.
                     //global: true dersek kaç tane instance varsa tüm instance lar toplam prefetchCount kadar alabilir.Eğer false olursa her instance prefetchCount kadar mesaj alabilir.
                     channel.BasicQos(0, 1, false);
 
-                    Console.WriteLine("Mesajları bekliyorum...");
+                    Console.WriteLine("Logları bekliyorum...");
 
                     var consumer = new EventingBasicConsumer(channel);
 
                     //autoAck = true olursa mesaj kuyruktan silinir işi biter bitmez.
-                    channel.BasicConsume("task_queue", autoAck: false, consumer);
+                    channel.BasicConsume(queue: queueName, autoAck: false, consumer);
 
                     consumer.Received += (model, ea) =>
                     {
-                        var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-                        Console.WriteLine("Mesaj alındı: " + message);
+                        var log = Encoding.UTF8.GetString(ea.Body.ToArray());
+                        Console.WriteLine("Log alındı: " + log);
                         int time = int.Parse(GetMessage(args));
                         Thread.Sleep(time);
-                        Console.WriteLine("Mesaj işlendi.");
+                        Console.WriteLine("Loglama bitti.");
 
                         //autoAck konusunda false dediğimiz için(autoack false mesajın silme işlemi yapılmıyor otomatikman) burada mesajın başarılı bir şekilde işlendi mesajı silebilirsin demek istedik.
                         channel.BasicAck(ea.DeliveryTag, multiple: false);
                     };
                     Console.WriteLine("Çıkış yapmak için tıklayınız.");
                     Console.ReadLine();
-                }                
+                }
             }
         }
 
