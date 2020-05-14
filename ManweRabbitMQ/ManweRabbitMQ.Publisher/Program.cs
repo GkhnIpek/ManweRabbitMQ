@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace ManweRabbitMQ.Publisher
 {
@@ -23,10 +24,19 @@ namespace ManweRabbitMQ.Publisher
                     Dictionary<string, object> headers = new Dictionary<string, object>();
                     headers.Add("format", "excel");
                     headers.Add("shape", "a4");
-
                     properties.Headers = headers;
+
+                    User user = new User()
+                    {
+                        Id = 1,
+                        Name = "test",
+                        Email = "test@test.com",
+                        Password = "1234"
+                    };
+
+                    String userSerialize = JsonConvert.SerializeObject(user);
                     Console.WriteLine("mesaj gönderildi.");
-                    channel.BasicPublish("header-exchange", string.Empty, properties, Encoding.UTF8.GetBytes("header mesajım"));
+                    channel.BasicPublish("header-exchange", string.Empty, properties, Encoding.UTF8.GetBytes(userSerialize));
                 }
 
                 Console.WriteLine("Çıkış yapmak için tıklayınız.");

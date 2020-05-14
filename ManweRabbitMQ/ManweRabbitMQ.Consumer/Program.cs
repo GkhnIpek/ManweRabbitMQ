@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace ManweRabbitMQ.Consumer
 {
@@ -35,11 +36,15 @@ namespace ManweRabbitMQ.Consumer
 
                     consumer.Received += (model, ea) =>
                     {
-                        var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-                        Console.WriteLine($"gelen mesaj: {message}");
+                        string message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                        if (!string.IsNullOrEmpty(message))
+                        {
+                            User user = JsonConvert.DeserializeObject<User>(message);
+                            Console.WriteLine($"gelen mesaj: {user.Id.ToString()}-{user.Name}-{user.Email}-{user.Password}");
 
-                        //autoAck konusunda false dediğimiz için(autoack false mesajın silme işlemi yapılmıyor otomatikman) burada mesajın başarılı bir şekilde işlendi mesajı silebilirsin demek istedik.
-                        channel.BasicAck(ea.DeliveryTag, multiple: false);
+                            //autoAck konusunda false dediğimiz için(autoack false mesajın silme işlemi yapılmıyor otomatikman) burada mesajın başarılı bir şekilde işlendi mesajı silebilirsin demek istedik.
+                            channel.BasicAck(ea.DeliveryTag, multiple: false);
+                        }
                     };
                     Console.WriteLine("Çıkış yapmak için tıklayınız.");
                     Console.ReadLine();
