@@ -1,17 +1,13 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
 
 namespace ManweRabbitMQ.Consumer
 {
-    public enum LogNames
-    {
-        Critical = 1,
-        Error = 2
-    }
     class Program
     {
         static void Main(string[] args)
@@ -24,35 +20,23 @@ namespace ManweRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("topic-exchange", durable: true, type: ExchangeType.Topic);
+                    channel.ExchangeDeclare("header-exchange", durable: true, type: ExchangeType.Headers);
+                    channel.QueueDeclare("kuyruk1", false, false, false, null);
+                    Dictionary<string, object> headers = new Dictionary<string, object>();
+                    headers.Add("format", "pdf");
+                    headers.Add("shape", "a4");
+                    //headers.Add("x-match", "all"); //all => tüm header ların aynı olması lazım yoksa mesajı yakalayamaz. Buradaki örnekte formatı pdf olan ile shape a4 olan varsa mesaj gelir.
+                    headers.Add("x-match", "any"); //all => herhangi bir header aynı olması mesajın yakalanması için yeterlidir.Buradaki örnekte formatı pdf veya shape a4 olan varsa mesaj gelir.
 
-                    var queueName = channel.QueueDeclare().QueueName;
-
-                    // * işareti tek herhangi birşey anlamına gelmektedir.
-                    // # işareti herhangi birden fazla birşey gelebilir anlamına gelmektedir.
-                    //string routingKey = "Info.*.Warning"; //Info.Herhangi birşey.Warning anlamı taşımaktadır.
-                    string routingKey = "#.Warning"; //Sonu Warning ile bitenler anlamı taşımaktadır.
-                    channel.QueueBind(queue: queueName, exchange: "topic-exchange", routingKey: routingKey);
-
-                    //prefetchCount: aynı anda kaç mesajın verilmek istendiği.
-                    //global: true dersek kaç tane instance varsa tüm instance lar toplam prefetchCount kadar alabilir.Eğer false olursa her instance prefetchCount kadar mesaj alabilir.
-                    channel.BasicQos(0, 1, false);
-
-                    Console.WriteLine("Custom log bekliyorum...");
-
+                    channel.QueueBind("kuyruk1", "header-exchange", string.Empty, headers);
                     var consumer = new EventingBasicConsumer(channel);
 
-                    //autoAck = true olursa mesaj kuyruktan silinir işi biter bitmez.
-                    channel.BasicConsume(queue: queueName, autoAck: false, consumer);
+                    channel.BasicConsume("kuyruk1", false, consumer);
 
                     consumer.Received += (model, ea) =>
                     {
-                        var log = Encoding.UTF8.GetString(ea.Body.ToArray());
-                        Console.WriteLine("Log alındı: " + log);
-                        int time = int.Parse(GetMessage(args));
-                        Thread.Sleep(time);
-                        File.AppendAllText("logs_critical_error.txt", log + "\n");
-                        Console.WriteLine("Loglama bitti.");
+                        var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                        Console.WriteLine($"gelen mesaj: {message}");
 
                         //autoAck konusunda false dediğimiz için(autoack false mesajın silme işlemi yapılmıyor otomatikman) burada mesajın başarılı bir şekilde işlendi mesajı silebilirsin demek istedik.
                         channel.BasicAck(ea.DeliveryTag, multiple: false);
@@ -61,11 +45,6 @@ namespace ManweRabbitMQ.Consumer
                     Console.ReadLine();
                 }
             }
-        }
-
-        private static string GetMessage(string[] args)
-        {
-            return args[0].ToString();
         }
     }
 }
