@@ -24,20 +24,21 @@ namespace ManweRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("direct-exchange", durable: true, type: ExchangeType.Direct);
+                    channel.ExchangeDeclare("topic-exchange", durable: true, type: ExchangeType.Topic);
 
                     var queueName = channel.QueueDeclare().QueueName;
 
-                    foreach (var logName in Enum.GetNames(typeof(LogNames)))
-                    {
-                        channel.QueueBind(queue: queueName, exchange: "direct-exchange", routingKey: logName);
-                    }
+                    // * işareti tek herhangi birşey anlamına gelmektedir.
+                    // # işareti herhangi birden fazla birşey gelebilir anlamına gelmektedir.
+                    //string routingKey = "Info.*.Warning"; //Info.Herhangi birşey.Warning anlamı taşımaktadır.
+                    string routingKey = "#.Warning"; //Sonu Warning ile bitenler anlamı taşımaktadır.
+                    channel.QueueBind(queue: queueName, exchange: "topic-exchange", routingKey: routingKey);
 
                     //prefetchCount: aynı anda kaç mesajın verilmek istendiği.
                     //global: true dersek kaç tane instance varsa tüm instance lar toplam prefetchCount kadar alabilir.Eğer false olursa her instance prefetchCount kadar mesaj alabilir.
                     channel.BasicQos(0, 1, false);
 
-                    Console.WriteLine("Critical ve Error logları bekliyorum...");
+                    Console.WriteLine("Custom log bekliyorum...");
 
                     var consumer = new EventingBasicConsumer(channel);
 

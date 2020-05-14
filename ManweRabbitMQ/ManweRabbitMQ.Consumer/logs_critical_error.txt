@@ -2,3 +2,11 @@ log: Error
 log: Critical
 log: Error
 log: Critical
+log: Info-Critical-Warning
+log: Info-Info-Warning
+log: Warning-Info-Warning
+log: Error-Critical-Warning
+log: Warning-Error-Warning
+log: Critical-Info-Warning
+log: Info-Critical-Warning
+log: Warning-Warning-Warning

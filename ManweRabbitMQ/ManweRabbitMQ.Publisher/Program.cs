@@ -24,17 +24,22 @@ namespace ManweRabbitMQ.Publisher
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("direct-exchange", durable: true, type: ExchangeType.Direct);
+                    channel.ExchangeDeclare("topic-exchange", durable: true, type: ExchangeType.Topic);
                     Array log_name_array = Enum.GetValues(typeof(LogNames));
                     for (int i = 1; i < 11; i++)
                     {
                         Random rnd = new Random();
-                        LogNames log = (LogNames) log_name_array.GetValue(rnd.Next(log_name_array.Length));
-                        var bodyByte = Encoding.UTF8.GetBytes($"log: {log.ToString()}");
+                        LogNames log1 = (LogNames) log_name_array.GetValue(rnd.Next(log_name_array.Length));
+                        LogNames log2 = (LogNames) log_name_array.GetValue(rnd.Next(log_name_array.Length));
+                        LogNames log3 = (LogNames) log_name_array.GetValue(rnd.Next(log_name_array.Length));
+
+                        string routingKey = $"{log1}.{log2}.{log3}";
+
+                        var bodyByte = Encoding.UTF8.GetBytes($"log: {log1.ToString()}-{log2.ToString()}-{log3.ToString()}");
                         var properties = channel.CreateBasicProperties();
                         properties.Persistent = true; //mesajı korumak için, silinmesini engellemek için kullanılır. Yukardaki kuyruğu sağlama aldığımız gibi(durable:false)
-                        channel.BasicPublish("direct-exchange", routingKey: log.ToString(), properties, body: bodyByte);
-                        Console.WriteLine($"Log mesajı gönderilmiştir: {log.ToString()}");
+                        channel.BasicPublish("topic-exchange", routingKey: routingKey, properties, body: bodyByte);
+                        Console.WriteLine($"Log mesajı gönderilmiştir =>  mesaj: {routingKey}");
                     }
                 }
 
