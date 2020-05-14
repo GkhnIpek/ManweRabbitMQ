@@ -1,11 +1,17 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 
 namespace ManweRabbitMQ.Consumer
 {
+    public enum LogNames
+    {
+        Critical = 1,
+        Error = 2
+    }
     class Program
     {
         static void Main(string[] args)
@@ -18,16 +24,20 @@ namespace ManweRabbitMQ.Consumer
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.ExchangeDeclare("logs", durable: true, type: ExchangeType.Fanout);
+                    channel.ExchangeDeclare("direct-exchange", durable: true, type: ExchangeType.Direct);
 
                     var queueName = channel.QueueDeclare().QueueName;
-                    channel.QueueBind(queue: queueName, exchange: "logs", routingKey: "");
+
+                    foreach (var logName in Enum.GetNames(typeof(LogNames)))
+                    {
+                        channel.QueueBind(queue: queueName, exchange: "direct-exchange", routingKey: logName);
+                    }
 
                     //prefetchCount: aynı anda kaç mesajın verilmek istendiği.
                     //global: true dersek kaç tane instance varsa tüm instance lar toplam prefetchCount kadar alabilir.Eğer false olursa her instance prefetchCount kadar mesaj alabilir.
                     channel.BasicQos(0, 1, false);
 
-                    Console.WriteLine("Logları bekliyorum...");
+                    Console.WriteLine("Critical ve Error logları bekliyorum...");
 
                     var consumer = new EventingBasicConsumer(channel);
 
@@ -40,6 +50,7 @@ namespace ManweRabbitMQ.Consumer
                         Console.WriteLine("Log alındı: " + log);
                         int time = int.Parse(GetMessage(args));
                         Thread.Sleep(time);
+                        File.AppendAllText("logs_critical_error.txt", log + "\n");
                         Console.WriteLine("Loglama bitti.");
 
                         //autoAck konusunda false dediğimiz için(autoack false mesajın silme işlemi yapılmıyor otomatikman) burada mesajın başarılı bir şekilde işlendi mesajı silebilirsin demek istedik.

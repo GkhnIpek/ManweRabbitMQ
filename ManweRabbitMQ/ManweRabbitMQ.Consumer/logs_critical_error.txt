@@ -1,0 +1,4 @@
+log: Error
+log: Critical
+log: Error
+log: Critical
